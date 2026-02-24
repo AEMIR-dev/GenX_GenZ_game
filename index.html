@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Are You Cooked? 🧠</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f0f1a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* ── SCREENS ── */
+    .screen { display: none; }
+    .screen.active { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+    /* ── START SCREEN ── */
+    .title {
+      font-size: 2.4rem;
+      font-weight: 900;
+      text-align: center;
+      line-height: 1.1;
+    }
+    .title span { color: #a78bfa; }
+
+    .subtitle {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .round-picker {
+      display: flex;
+      gap: 12px;
+    }
+    .round-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      border: 2px solid #3f3f6e;
+      background: #1a1a2e;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .round-btn:hover, .round-btn.selected {
+      border-color: #a78bfa;
+      background: #2d2b55;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #7c3aed, #a78bfa);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+
+    /* ── GAME SCREEN ── */
+    .progress-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: #1e1e35;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #a78bfa);
+      border-radius: 99px;
+      transition: width 0.3s;
+    }
+
+    .meta {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #9ca3af;
+      font-weight: 600;
+    }
+
+    .slang-card {
+      width: 100%;
+      background: linear-gradient(135deg, #1e1e35, #2a2050);
+      border: 1px solid #3f3f6e;
+      border-radius: 20px;
+      padding: 28px 20px;
+      text-align: center;
+    }
+    .slang-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #a78bfa;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .slang-word {
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+    .slang-context {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    .question-text {
+      font-size: 1rem;
+      color: #d1d5db;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .choices {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .choice-btn {
+      width: 100%;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 2px solid #3f3f6e;
+      background: #1a1a2e;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .choice-btn:hover:not(:disabled) {
+      border-color: #a78bfa;
+      background: #2d2b55;
+    }
+    .choice-btn.correct {
+      border-color: #34d399;
+      background: #064e3b;
+      color: #a7f3d0;
+    }
+    .choice-btn.wrong {
+      border-color: #f87171;
+      background: #450a0a;
+      color: #fca5a5;
+    }
+    .choice-btn:disabled { cursor: default; }
+
+    /* ── FEEDBACK ── */
+    .feedback-box {
+      width: 100%;
+      padding: 16px 18px;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      font-weight: 600;
+      display: none;
+    }
+    .feedback-box.correct {
+      background: #064e3b;
+      border: 1px solid #34d399;
+      color: #a7f3d0;
+      display: block;
+    }
+    .feedback-box.wrong {
+      background: #450a0a;
+      border: 1px solid #f87171;
+      color: #fca5a5;
+      display: block;
+    }
+
+    .btn-next {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #7c3aed, #a78bfa);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: none;
+      transition: opacity 0.15s;
+    }
+    .btn-next:hover { opacity: 0.9; }
+    .btn-next.visible { display: block; }
+
+    /* ── END SCREEN ── */
+    .score-circle {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed, #a78bfa);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .score-num {
+      font-size: 2.8rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .score-denom {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      font-weight: 600;
+    }
+
+    .result-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      text-align: center;
+    }
+    .result-msg {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div id="screen-start" class="screen active">
+    <div class="title">Are You<br /><span>Cooked?</span> 🧠</div>
+    <div class="subtitle">Think you know Gen Z slang?<br />Let's find out, bestie.</div>
+    <div style="width:100%">
+      <div style="font-size:0.85rem;color:#9ca3af;font-weight:700;margin-bottom:10px;text-align:center;">HOW MANY ROUNDS?</div>
+      <div class="round-picker">
+        <button class="round-btn selected" data-rounds="5" onclick="selectRounds(5, this)">5 rounds<br/><span style="font-size:0.75rem;opacity:0.6">Quick vibe</span></button>
+        <button class="round-btn" data-rounds="10" onclick="selectRounds(10, this)">10 rounds<br/><span style="font-size:0.75rem;opacity:0.6">Full send</span></button>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="startGame()">Let's go 🚀</button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="screen-game" class="screen">
+    <div class="progress-bar-wrap" style="width:100%">
+      <div class="progress-bar-fill" id="progress-bar"></div>
+    </div>
+    <div class="meta">
+      <span id="q-counter">Question 1 of 5</span>
+      <span id="score-display">Score: 0</span>
+    </div>
+    <div class="slang-card">
+      <div class="slang-label">Gen Z Slang</div>
+      <div class="slang-word" id="slang-word"></div>
+      <div class="slang-context" id="slang-context"></div>
+    </div>
+    <div class="question-text">What does this actually mean?</div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback-box" id="feedback"></div>
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">Next question →</button>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="screen-end" class="screen">
+    <div class="title">That's a<br /><span>wrap!</span> 🎬</div>
+    <div class="score-circle">
+      <div class="score-num" id="final-score">0</div>
+      <div class="score-denom" id="final-total">out of 5</div>
+    </div>
+    <div class="result-title" id="result-title"></div>
+    <div class="result-msg" id="result-msg"></div>
+    <button class="btn-primary" onclick="resetGame()">Play again 🔄</button>
+  </div>
+
+</div>
+
+<script>
+  // ── QUESTIONS ──────────────────────────────────────────────────────────────
+  const ALL_QUESTIONS = [
+    {
+      word: "Slay",
+      context: "\"She absolutely slayed that presentation.\"",
+      correct: "To perform amazingly or look incredible",
+      wrong: ["To attack with a sword", "A ride on a horse-drawn sleigh", "To take a very long nap"]
+    },
+    {
+      word: "No cap",
+      context: "\"That movie was incredible, no cap.\"",
+      correct: "Seriously, no lie — for real",
+      wrong: ["A dress code: no hats allowed", "A mushroom with no top", "When your pen runs out of ink"]
+    },
+    {
+      word: "Lowkey",
+      context: "\"I lowkey love that song.\"",
+      correct: "Somewhat, quietly, secretly",
+      wrong: ["A musical note played very softly", "The spare key under the doormat", "A yoga pose for relaxation"]
+    },
+    {
+      word: "Bussin",
+      context: "\"These tacos are bussin fr.\"",
+      correct: "Really delicious or amazing",
+      wrong: ["Taking the city bus to work", "Accidentally breaking something", "A regional British accent"]
+    },
+    {
+      word: "Rizz",
+      context: "\"He walked in and had instant rizz.\"",
+      correct: "Natural charm and ability to attract others",
+      wrong: ["A creamy Italian rice dish", "When your hair gets frizzy in humidity", "A jazz musician from the 1940s"]
+    },
+    {
+      word: "Ate",
+      context: "\"She came out in that outfit and ate.\"",
+      correct: "Performed flawlessly — totally nailed it",
+      wrong: ["Past tense of eating a meal", "The number 8 in another language", "A unit of measurement in baking"]
+    },
+    {
+      word: "It's giving...",
+      context: "\"This room? It's giving haunted mansion.\"",
+      correct: "Reminds you of / has the vibe of",
+      wrong: ["Making a charitable donation", "Present tense grammar in a sentence", "When the radiator is working overtime"]
+    },
+    {
+      word: "Stan",
+      context: "\"I fully stan that band.\"",
+      correct: "To be an obsessive, devoted fan of",
+      wrong: ["A man whose name is Stanley", "To stand up for a friend", "A type of heavy-duty power tool"]
+    },
+    {
+      word: "Ghosted",
+      context: "\"He texted me every day then ghosted.\"",
+      correct: "Someone suddenly stopped all contact with you",
+      wrong: ["Dressed as a ghost for a costume party", "Scared by a horror film", "A special effect used in film editing"]
+    },
+    {
+      word: "Vibe check",
+      context: "\"Time for a vibe check — you okay?\"",
+      correct: "Assessing someone's energy or mood",
+      wrong: ["Checking your phone's vibration settings", "A routine car tune-up", "A medical examination at the doctor"]
+    }
+  ];
+
+  const CHEEKY_WRONG = [
+    "Oof, no cap that's wrong bestie — it actually means:",
+    "Big yikes, you absolute boomer 💀 it actually means:",
+    "That's giving confused-grandparent energy fr — it actually means:",
+    "Not the vibe bestie, not even close — it actually means:",
+    "I'm deceased 😭 it actually means:",
+    "Rent free in your head, huh? It actually means:",
+    "Main character moment... of getting it wrong. It actually means:",
+    "Periodt, that's incorrect. It actually means:"
+  ];
+
+  // ── STATE ──────────────────────────────────────────────────────────────────
+  let selectedRounds = 5;
+  let questions = [];
+  let currentIndex = 0;
+  let score = 0;
+  let answered = false;
+
+  // ── HELPERS ───────────────────────────────────────────────────────────────
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+  }
+
+  function randomCheeky() {
+    return CHEEKY_WRONG[Math.floor(Math.random() * CHEEKY_WRONG.length)];
+  }
+
+  // ── GAME FLOW ──────────────────────────────────────────────────────────────
+  function selectRounds(n, btn) {
+    selectedRounds = n;
+    document.querySelectorAll(".round-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+  }
+
+  function startGame() {
+    questions = shuffle(ALL_QUESTIONS).slice(0, selectedRounds);
+    currentIndex = 0;
+    score = 0;
+    answered = false;
+    showScreen("screen-game");
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    answered = false;
+    const q = questions[currentIndex];
+    const total = questions.length;
+
+    // Progress
+    document.getElementById("progress-bar").style.width = ((currentIndex / total) * 100) + "%";
+    document.getElementById("q-counter").textContent = `Question ${currentIndex + 1} of ${total}`;
+    document.getElementById("score-display").textContent = `Score: ${score}`;
+
+    // Card
+    document.getElementById("slang-word").textContent = q.word;
+    document.getElementById("slang-context").textContent = q.context;
+
+    // Choices — shuffle correct + wrong together
+    const options = shuffle([q.correct, ...q.wrong]);
+    const choicesEl = document.getElementById("choices");
+    choicesEl.innerHTML = "";
+    options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn";
+      btn.textContent = opt;
+      btn.onclick = () => handleChoice(btn, opt, q.correct);
+      choicesEl.appendChild(btn);
+    });
+
+    // Hide feedback + next
+    const fb = document.getElementById("feedback");
+    fb.className = "feedback-box";
+    fb.textContent = "";
+    document.getElementById("btn-next").classList.remove("visible");
+  }
+
+  function handleChoice(btn, chosen, correct) {
+    if (answered) return;
+    answered = true;
+
+    const isCorrect = chosen === correct;
+    const allBtns = document.querySelectorAll(".choice-btn");
+
+    allBtns.forEach(b => {
+      b.disabled = true;
+      if (b.textContent === correct) b.classList.add("correct");
+    });
+
+    if (!isCorrect) {
+      btn.classList.add("wrong");
+    } else {
+      score++;
+    }
+
+    // Feedback
+    const fb = document.getElementById("feedback");
+    if (isCorrect) {
+      fb.className = "feedback-box correct";
+      fb.textContent = "✅ Correct! You ate that, no cap.";
+    } else {
+      fb.className = "feedback-box wrong";
+      fb.textContent = `❌ ${randomCheeky()} "${correct}"`;
+    }
+
+    // Show next button
+    const nextBtn = document.getElementById("btn-next");
+    const isLast = currentIndex === questions.length - 1;
+    nextBtn.textContent = isLast ? "See my results 🎯" : "Next question →";
+    nextBtn.classList.add("visible");
+
+    // Update score display
+    document.getElementById("score-display").textContent = `Score: ${score}`;
+  }
+
+  function nextQuestion() {
+    currentIndex++;
+    if (currentIndex >= questions.length) {
+      showResults();
+    } else {
+      renderQuestion();
+    }
+  }
+
+  function showResults() {
+    const total = questions.length;
+    document.getElementById("final-score").textContent = score;
+    document.getElementById("final-total").textContent = `out of ${total}`;
+
+    // Update progress to 100%
+    document.getElementById("progress-bar").style.width = "100%";
+
+    let title, msg;
+    const pct = score / total;
+
+    if (pct === 1) {
+      title = "Lowkey a legend 👑";
+      msg = "Full marks? You're built different. Slay.";
+    } else if (pct >= 0.7) {
+      title = "Pretty slayed it 🔥";
+      msg = "High-key impressive. You're not as cooked as we thought.";
+    } else if (pct >= 0.4) {
+      title = "Mid, but make it cute 😅";
+      msg = "You're giving... effort. We respect the hustle bestie.";
+    } else {
+      title = "You're so cooked 💀";
+      msg = "It's giving total boomer energy. Don't worry, we still love you.";
+    }
+
+    document.getElementById("result-title").textContent = title;
+    document.getElementById("result-msg").textContent = msg;
+    showScreen("screen-end");
+  }
+
+  function resetGame() {
+    showScreen("screen-start");
+  }
+</script>
+</body>
+</html>
