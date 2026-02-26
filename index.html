@@ -93,15 +93,70 @@
       transition: width 0.3s;
     }
 
+    /* ── META ROW (3 columns) ── */
     .meta {
       width: 100%;
       display: flex;
-      justify-content: space-between;
+      align-items: center;
       font-size: 0.85rem;
       color: #9ca3af;
       font-weight: 600;
     }
+    .meta-left  { flex: 1; text-align: left; }
+    .meta-center { flex: 1; text-align: center; }
+    .meta-right { flex: 1; text-align: right; }
 
+    /* ── STREAK BADGE ── */
+    .streak-badge {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #fbbf24;
+      background: rgba(251, 191, 36, 0.12);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 99px;
+      padding: 2px 10px;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .streak-badge.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ── TIMER ── */
+    .timer-wrap {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: opacity 0.3s;
+    }
+    .timer-bar-bg {
+      flex: 1;
+      height: 6px;
+      background: #1e1e35;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .timer-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: #34d399;
+      border-radius: 99px;
+    }
+    .timer-bar-fill.urgent { background: #f87171; }
+    .timer-num {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #9ca3af;
+      min-width: 20px;
+      text-align: right;
+    }
+    .timer-num.urgent { color: #f87171; }
+
+    /* ── SLANG CARD ── */
     .slang-card {
       width: 100%;
       background: linear-gradient(135deg, #1e1e35, #2a2050);
@@ -137,6 +192,7 @@
       font-weight: 600;
     }
 
+    /* ── CHOICES ── */
     .choices {
       width: 100%;
       display: flex;
@@ -244,6 +300,29 @@
       font-size: 0.95rem;
       line-height: 1.5;
     }
+
+    /* ── SHARE BUTTON ── */
+    .btn-share {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: 2px solid #3f3f6e;
+      background: #1a1a2e;
+      color: #a78bfa;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-share:hover {
+      border-color: #a78bfa;
+      background: #2d2b55;
+    }
+    .btn-share.copied {
+      border-color: #34d399;
+      color: #34d399;
+      background: #064e3b;
+    }
   </style>
 </head>
 <body>
@@ -268,10 +347,22 @@
     <div class="progress-bar-wrap" style="width:100%">
       <div class="progress-bar-fill" id="progress-bar"></div>
     </div>
+
     <div class="meta">
-      <span id="q-counter">Question 1 of 5</span>
-      <span id="score-display">Score: 0</span>
+      <span class="meta-left" id="q-counter">Question 1 of 5</span>
+      <span class="meta-center">
+        <span class="streak-badge" id="streak-badge">🔥 <span id="streak-count">0</span> in a row</span>
+      </span>
+      <span class="meta-right" id="score-display">Score: 0</span>
     </div>
+
+    <div class="timer-wrap" id="timer-wrap">
+      <div class="timer-bar-bg">
+        <div class="timer-bar-fill" id="timer-bar"></div>
+      </div>
+      <div class="timer-num" id="timer-num">10</div>
+    </div>
+
     <div class="slang-card">
       <div class="slang-label">Gen Z Slang</div>
       <div class="slang-word" id="slang-word"></div>
@@ -292,6 +383,7 @@
     </div>
     <div class="result-title" id="result-title"></div>
     <div class="result-msg" id="result-msg"></div>
+    <button class="btn-share" id="share-btn" onclick="shareScore()">📋 Share your score</button>
     <button class="btn-primary" onclick="resetGame()">Play again 🔄</button>
   </div>
 
@@ -362,6 +454,7 @@
     }
   ];
 
+  // ── RESPONSE BANKS ────────────────────────────────────────────────────────
   const CHEEKY_WRONG = [
     "Oof, no cap that's wrong bestie — it actually means:",
     "Big yikes, you absolute boomer 💀 it actually means:",
@@ -373,12 +466,34 @@
     "Periodt, that's incorrect. It actually means:"
   ];
 
-  // ── STATE ──────────────────────────────────────────────────────────────────
+  const CHEEKY_RIGHT = [
+    "Slay! You actually know your stuff fr.",
+    "Periodt! That's correct bestie.",
+    "No cap, you ate that one.",
+    "Understood the assignment! Correct.",
+    "Built different. That's right.",
+    "Lowkey impressed rn. Correct!",
+    "You're not as cooked as we thought. Correct!",
+    "Main character energy! That's right."
+  ];
+
+  const TIMEOUT_MSGS = [
+    "⏰ Bestie you FROZE — too slow! It was:",
+    "⏰ Clock said no. Touch grass faster next time. It was:",
+    "⏰ Time's up! The vibe couldn't wait for you. It was:",
+    "⏰ You really left us hanging like that? It was:"
+  ];
+
+  // ── STATE ─────────────────────────────────────────────────────────────────
+  const TIMER_SECONDS = 10;
   let selectedRounds = 5;
   let questions = [];
   let currentIndex = 0;
   let score = 0;
+  let streak = 0;
   let answered = false;
+  let timerInterval = null;
+  let timeLeft = TIMER_SECONDS;
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
   function shuffle(arr) {
@@ -395,11 +510,82 @@
     document.getElementById(id).classList.add("active");
   }
 
-  function randomCheeky() {
-    return CHEEKY_WRONG[Math.floor(Math.random() * CHEEKY_WRONG.length)];
+  function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  // ── GAME FLOW ──────────────────────────────────────────────────────────────
+  // ── TIMER ─────────────────────────────────────────────────────────────────
+  function startTimer() {
+    timeLeft = TIMER_SECONDS;
+    // Snap bar to 100% without transition, then enable transition for the countdown
+    const bar = document.getElementById("timer-bar");
+    bar.style.transition = "none";
+    bar.style.width = "100%";
+    bar.classList.remove("urgent");
+    document.getElementById("timer-num").classList.remove("urgent");
+    document.getElementById("timer-wrap").style.opacity = "1";
+    // Allow browser to paint the reset before starting animated countdown
+    requestAnimationFrame(() => {
+      bar.style.transition = "width 1s linear, background 0.3s";
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          clearTimer();
+          handleTimeout();
+        }
+      }, 1000);
+    });
+  }
+
+  function clearTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function updateTimerDisplay() {
+    const bar = document.getElementById("timer-bar");
+    const num = document.getElementById("timer-num");
+    bar.style.width = ((timeLeft / TIMER_SECONDS) * 100) + "%";
+    num.textContent = timeLeft;
+    const urgent = timeLeft <= 3;
+    bar.classList.toggle("urgent", urgent);
+    num.classList.toggle("urgent", urgent);
+  }
+
+  function handleTimeout() {
+    if (answered) return;
+    answered = true;
+    streak = 0;
+    updateStreakDisplay();
+
+    document.getElementById("timer-wrap").style.opacity = "0.3";
+
+    const q = questions[currentIndex];
+    document.querySelectorAll(".choice-btn").forEach(b => {
+      b.disabled = true;
+      if (b.textContent === q.correct) b.classList.add("correct");
+    });
+
+    const fb = document.getElementById("feedback");
+    fb.className = "feedback-box wrong";
+    fb.textContent = `${pick(TIMEOUT_MSGS)} "${q.correct}"`;
+
+    const nextBtn = document.getElementById("btn-next");
+    nextBtn.textContent = currentIndex === questions.length - 1 ? "See my results 🎯" : "Next question →";
+    nextBtn.classList.add("visible");
+  }
+
+  // ── STREAK ────────────────────────────────────────────────────────────────
+  function updateStreakDisplay() {
+    const badge = document.getElementById("streak-badge");
+    document.getElementById("streak-count").textContent = streak;
+    badge.classList.toggle("visible", streak >= 2);
+  }
+
+  // ── GAME FLOW ─────────────────────────────────────────────────────────────
   function selectRounds(n, btn) {
     selectedRounds = n;
     document.querySelectorAll(".round-btn").forEach(b => b.classList.remove("selected"));
@@ -410,6 +596,7 @@
     questions = shuffle(ALL_QUESTIONS).slice(0, selectedRounds);
     currentIndex = 0;
     score = 0;
+    streak = 0;
     answered = false;
     showScreen("screen-game");
     renderQuestion();
@@ -417,15 +604,20 @@
 
   function renderQuestion() {
     answered = false;
+    clearTimer();
+
     const q = questions[currentIndex];
     const total = questions.length;
 
-    // Progress
+    // Progress bar
     document.getElementById("progress-bar").style.width = ((currentIndex / total) * 100) + "%";
     document.getElementById("q-counter").textContent = `Question ${currentIndex + 1} of ${total}`;
     document.getElementById("score-display").textContent = `Score: ${score}`;
 
-    // Card
+    // Streak
+    updateStreakDisplay();
+
+    // Slang card
     document.getElementById("slang-word").textContent = q.word;
     document.getElementById("slang-context").textContent = q.context;
 
@@ -441,48 +633,55 @@
       choicesEl.appendChild(btn);
     });
 
-    // Hide feedback + next
+    // Reset feedback + next button
     const fb = document.getElementById("feedback");
     fb.className = "feedback-box";
     fb.textContent = "";
     document.getElementById("btn-next").classList.remove("visible");
+
+    // Start countdown
+    startTimer();
   }
 
   function handleChoice(btn, chosen, correct) {
     if (answered) return;
     answered = true;
+    clearTimer();
+    document.getElementById("timer-wrap").style.opacity = "0.3";
 
     const isCorrect = chosen === correct;
-    const allBtns = document.querySelectorAll(".choice-btn");
 
-    allBtns.forEach(b => {
+    document.querySelectorAll(".choice-btn").forEach(b => {
       b.disabled = true;
       if (b.textContent === correct) b.classList.add("correct");
     });
 
-    if (!isCorrect) {
-      btn.classList.add("wrong");
-    } else {
+    if (isCorrect) {
       score++;
+      streak++;
+    } else {
+      btn.classList.add("wrong");
+      streak = 0;
     }
 
-    // Feedback
+    updateStreakDisplay();
+
+    // Feedback message
     const fb = document.getElementById("feedback");
     if (isCorrect) {
       fb.className = "feedback-box correct";
-      fb.textContent = "✅ Correct! You ate that, no cap.";
+      const streakBonus = streak >= 3 ? ` 🔥 ${streak} in a row!` : "";
+      fb.textContent = `✅ ${pick(CHEEKY_RIGHT)}${streakBonus}`;
     } else {
       fb.className = "feedback-box wrong";
-      fb.textContent = `❌ ${randomCheeky()} "${correct}"`;
+      fb.textContent = `❌ ${pick(CHEEKY_WRONG)} "${correct}"`;
     }
 
-    // Show next button
+    // Next button
     const nextBtn = document.getElementById("btn-next");
-    const isLast = currentIndex === questions.length - 1;
-    nextBtn.textContent = isLast ? "See my results 🎯" : "Next question →";
+    nextBtn.textContent = currentIndex === questions.length - 1 ? "See my results 🎯" : "Next question →";
     nextBtn.classList.add("visible");
 
-    // Update score display
     document.getElementById("score-display").textContent = `Score: ${score}`;
   }
 
@@ -496,15 +695,13 @@
   }
 
   function showResults() {
+    clearTimer();
     const total = questions.length;
     document.getElementById("final-score").textContent = score;
     document.getElementById("final-total").textContent = `out of ${total}`;
 
-    // Update progress to 100%
-    document.getElementById("progress-bar").style.width = "100%";
-
-    let title, msg;
     const pct = score / total;
+    let title, msg;
 
     if (pct === 1) {
       title = "Lowkey a legend 👑";
@@ -522,11 +719,42 @@
 
     document.getElementById("result-title").textContent = title;
     document.getElementById("result-msg").textContent = msg;
+
+    // Reset share button in case of replay
+    const shareBtn = document.getElementById("share-btn");
+    shareBtn.textContent = "📋 Share your score";
+    shareBtn.classList.remove("copied");
+
     showScreen("screen-end");
   }
 
   function resetGame() {
+    clearTimer();
+    streak = 0;
     showScreen("screen-start");
+  }
+
+  // ── SHARE ─────────────────────────────────────────────────────────────────
+  function shareScore() {
+    const total = questions.length;
+    const pct = Math.round((score / total) * 100);
+    const text = `I scored ${score}/${total} on "Are You Cooked? 🧠" — the Gen Z slang quiz. Think you can beat me? 👀`;
+
+    if (navigator.share) {
+      navigator.share({ text }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById("share-btn");
+        btn.textContent = "✅ Copied to clipboard!";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = "📋 Share your score";
+          btn.classList.remove("copied");
+        }, 2500);
+      }).catch(() => {
+        alert(text);
+      });
+    }
   }
 </script>
 </body>
